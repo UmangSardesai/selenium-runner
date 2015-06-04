@@ -8,19 +8,10 @@ var browse = require('./browse');
  * Each browser will launch opt.concurrency tests in parallel
 */
 module.exports = function seleniumRunner (opt, tests, testCb, endCb) {
-    filterBrowsers(opt.browsers, opt.remoteCfg, browsersFound);
-
-    function browsersFound (err, browsers) {
-        if (err !== null) {
-            return endCb(err);
-        }
-
-        async.forEach(browsers, launchTestsForDesiredBrowser, endCb);
-    }
+    var queue = async.queue(launchTest, opt.concurrency);
+    async.forEach(opt.browsers, launchTestsForDesiredBrowser, endCb);
 
     function launchTestsForDesiredBrowser (desired, cb) {
-        var queue = async.queue(launchTest, opt.concurrency);
-
         tests.forEach(function(test) {
             var task = {
                 url: test.url,
@@ -30,7 +21,6 @@ module.exports = function seleniumRunner (opt, tests, testCb, endCb) {
             };
             queue.push(task, testCb);
         });
-
         queue.drain = cb;
     }
 }
@@ -48,8 +38,4 @@ function launchTest (opt, cb) {
             });
         });
     })
-}
-
-function filterBrowsers (browsers, remoteCfg, cb) {
-        cb(null, browsers);
 }
